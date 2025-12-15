@@ -15,6 +15,7 @@ Made with:
 - ⌨️ **Keyboard Support** — Use arrow keys (←/→) on desktop
 - 🌙 **Dark/Light Mode** — Toggle between dark and light themes
 - 📊 **Session Stats** — Track how many photos you've kept vs deleted
+- 🎞️ **Skip Videos Mode** — Enable an optional filter that automatically skips video assets
 - ⚡ **Preloading** — Next photo is preloaded for instant transitions
 - 🔒 **No Backend Required** — Connects directly to Immich via API
 

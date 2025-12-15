@@ -10,20 +10,22 @@ export function useImmich() {
   const currentAsset = ref<ImmichAsset | null>(null)
   const nextAsset = ref<ImmichAsset | null>(null)
   const error = ref<string | null>(null)
+  const SKIP_VIDEOS_BATCH_SIZE = 10
+  const SKIP_VIDEOS_MAX_ATTEMPTS = 5
 
-  // API requests through proxy
+  // Generic Immich API request helper
   async function apiRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Proxy URL: /immich-api/api/endpoint
-    const url = `${authStore.proxyBaseUrl}/api${endpoint}`
-    
-    console.log('API Request:', url, 'Target:', authStore.immichBaseUrl)
+    if (!authStore.immichBaseUrl) {
+      throw new Error('Immich server URL is not configured')
+    }
 
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}${normalizedEndpoint}`
     const headers: HeadersInit = {
       'x-api-key': authStore.apiKey,
-      'X-Target-Host': authStore.immichBaseUrl,
       'Accept': 'application/json',
       ...options.headers,
     }
@@ -73,9 +75,26 @@ export function useImmich() {
   // Fetch a random asset
   async function fetchRandomAsset(): Promise<ImmichAsset | null> {
     try {
-      const assets = await apiRequest<ImmichAsset[]>('/assets/random?count=1')
-      if (assets && assets.length > 0) {
-        return assets[0]
+      const attempts = uiStore.skipVideos ? SKIP_VIDEOS_MAX_ATTEMPTS : 1
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        const count = uiStore.skipVideos ? SKIP_VIDEOS_BATCH_SIZE : 1
+        const assets = await apiRequest<ImmichAsset[]>(`/assets/random?count=${count}`)
+        if (!assets || assets.length === 0) {
+          continue
+        }
+
+        if (!uiStore.skipVideos) {
+          return assets[0]
+        }
+
+        const photoAsset = assets.find((asset) => asset.type !== 'VIDEO')
+        if (photoAsset) {
+          return photoAsset
+        }
+      }
+
+      if (uiStore.skipVideos) {
+        throw new Error('Only video assets were returned. Disable Skip Videos mode to review them.')
       }
       return null
     } catch (e) {
@@ -95,7 +114,9 @@ export function useImmich() {
       if (currentAsset.value) {
         preloadNextAsset()
       } else {
-        error.value = 'No photos found in your library'
+        error.value = uiStore.skipVideos
+          ? 'No photos were found after skipping videos. Try turning off Skip Videos mode.'
+          : 'No photos found in your library'
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to load photo'
@@ -111,6 +132,7 @@ export function useImmich() {
 
       if (nextAsset.value) {
         const url = getAssetThumbnailUrl(nextAsset.value.id, 'preview')
+        if (!url) return
         fetch(url, {
           headers: {
             'x-api-key': authStore.apiKey,
@@ -134,9 +156,12 @@ export function useImmich() {
     }
   }
 
-  // Get asset thumbnail URL (proxy)
+  // Get asset thumbnail URL
   function getAssetThumbnailUrl(assetId: string, size: 'thumbnail' | 'preview' = 'preview'): string {
-    return `${authStore.proxyBaseUrl}/api/assets/${assetId}/thumbnail?size=${size}`
+    if (!authStore.immichBaseUrl) {
+      return ''
+    }
+    return `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}/assets/${assetId}/thumbnail?size=${size}`
   }
 
   // Get headers for image requests

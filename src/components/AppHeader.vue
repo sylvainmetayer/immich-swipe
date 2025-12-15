@@ -41,9 +41,33 @@ function logout() {
         </span>
       </div>
 
+      <!-- Skip videos toggle -->
+      <button
+        @click="uiStore.toggleSkipVideos()"
+        class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors"
+        :class="uiStore.skipVideos
+          ? 'bg-green-600 border-green-500 text-white'
+          : uiStore.isDarkMode
+            ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+            : 'border-gray-300 text-gray-600 hover:bg-gray-100'"
+        :aria-pressed="uiStore.skipVideos"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-3 4h7a2 2 0 002-2V8a2 2 0 00-2-2h-7M9 18H6a2 2 0 01-2-2V8a2 2 0 012-2h3m0 12V6"
+          />
+        </svg>
+        <span>
+          {{ uiStore.skipVideos ? 'Skip videos: On' : 'Skip videos: Off' }}
+        </span>
+      </button>
+
       <!-- Theme toggle -->
       <button
-        @click="uiStore.toggleDarkMode"
+        @click="uiStore.toggleDarkMode()"
         class="p-2 rounded-full transition-colors"
         :class="uiStore.isDarkMode ? 'hover:bg-gray-800 text-white' : 'hover:bg-gray-200 text-gray-700'"
         aria-label="Toggle theme"

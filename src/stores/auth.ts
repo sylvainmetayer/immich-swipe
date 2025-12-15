@@ -7,18 +7,36 @@ const STORAGE_KEY = 'immich-swipe-config'
 export const useAuthStore = defineStore('auth', () => {
   const serverUrl = ref<string>('')
   const apiKey = ref<string>('')
+  const hasStoredConfig = ref<boolean>(false)
+  const proxyBaseUrl = '/api'
 
-  // Load from localStorage on init
-  function loadConfig() {
+  function readStoredConfig(): ImmichConfig | null {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       try {
         const config: ImmichConfig = JSON.parse(stored)
-        serverUrl.value = config.serverUrl || ''
-        apiKey.value = config.apiKey || ''
+        return {
+          serverUrl: config.serverUrl || '',
+          apiKey: config.apiKey || '',
+        }
       } catch {
         console.error('Failed to parse stored config')
       }
+    }
+    return null
+  }
+
+  // Load from localStorage on init or when requested
+  function loadConfig() {
+    const config = readStoredConfig()
+    if (config) {
+      serverUrl.value = config.serverUrl
+      apiKey.value = config.apiKey
+      hasStoredConfig.value = true
+    } else {
+      serverUrl.value = ''
+      apiKey.value = ''
+      hasStoredConfig.value = false
     }
   }
 
@@ -29,6 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
       apiKey: apiKey.value,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    hasStoredConfig.value = true
   }
 
   // Set config
@@ -44,6 +63,11 @@ export const useAuthStore = defineStore('auth', () => {
     serverUrl.value = ''
     apiKey.value = ''
     localStorage.removeItem(STORAGE_KEY)
+    hasStoredConfig.value = false
+  }
+
+  function getStoredConfig(): ImmichConfig | null {
+    return readStoredConfig()
   }
 
   // Check if logged in
@@ -51,14 +75,18 @@ export const useAuthStore = defineStore('auth', () => {
     return serverUrl.value.length > 0 && apiKey.value.length > 0
   })
 
-  // Immich server base URL (ohne /api)
+  // Immich server base URL without /api suffix
   const immichBaseUrl = computed(() => {
     if (!serverUrl.value) return ''
     return serverUrl.value.replace(/\/api\/?$/, '')
   })
 
-  // Proxy base URL - requests go here
-  const proxyBaseUrl = '/immich-api'
+  // Base URL for direct Immich API calls (always ends with /api)
+  const apiBaseUrl = computed(() => {
+    if (!serverUrl.value) return ''
+    const normalized = serverUrl.value.replace(/\/+$/, '')
+    return normalized.endsWith('/api') ? normalized : `${normalized}/api`
+  })
 
   // Initialize
   loadConfig()
@@ -67,10 +95,13 @@ export const useAuthStore = defineStore('auth', () => {
     serverUrl,
     apiKey,
     isLoggedIn,
+    hasStoredConfig,
     immichBaseUrl,
+    apiBaseUrl,
     proxyBaseUrl,
     setConfig,
     clearConfig,
     loadConfig,
+    getStoredConfig,
   }
 })

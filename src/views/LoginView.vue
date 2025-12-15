@@ -17,7 +17,6 @@ const isSubmitting = ref(false)
 
 async function handleSubmit() {
   error.value = ''
-
   if (!serverUrl.value.trim()) {
     error.value = 'Please enter your Immich server URL'
     return
@@ -45,6 +44,18 @@ async function handleSubmit() {
   }
 
   isSubmitting.value = false
+}
+
+function insertStoredConfig() {
+  const stored = authStore.getStoredConfig()
+  if (!stored) {
+    uiStore.toast('No saved config found', 'error', 2000)
+    return
+  }
+
+  error.value = ''
+  serverUrl.value = stored.serverUrl || ''
+  apiKey.value = stored.apiKey || ''
 }
 </script>
 
@@ -105,6 +116,19 @@ async function handleSubmit() {
             Find your API key in Immich: Account Settings → API Keys
           </p>
         </div>
+
+        <!-- Insert from localStorage -->
+        <button
+          v-if="authStore.hasStoredConfig"
+          type="button"
+          @click="insertStoredConfig"
+          class="w-full py-3 px-4 rounded-lg font-medium border transition-colors"
+          :class="uiStore.isDarkMode
+            ? 'border-gray-700 text-white hover:bg-gray-900'
+            : 'border-gray-300 text-black hover:bg-gray-100'"
+        >
+          Use saved Immich settings
+        </button>
 
         <!-- Error message -->
         <div v-if="error" class="p-3 rounded-lg bg-red-500/20 text-red-400 text-sm">

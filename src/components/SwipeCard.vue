@@ -72,7 +72,10 @@ async function fetchImage() {
   }
 
   try {
-    const url = `${authStore.proxyBaseUrl}/api/assets/${props.asset.id}/thumbnail?size=preview`
+    if (!authStore.immichBaseUrl) {
+      throw new Error('Immich server URL missing')
+    }
+    const url = `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}/assets/${props.asset.id}/thumbnail?size=preview`
     const response = await fetch(url, {
       headers: {
         'x-api-key': authStore.apiKey,

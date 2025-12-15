@@ -4,6 +4,7 @@ import { ref, watch } from 'vue'
 export const useUiStore = defineStore('ui', () => {
   // Dark mode state - persisted to localStorage
   const isDarkMode = ref<boolean>(true)
+  const skipVideos = ref<boolean>(false)
 
   // Initialize from localStorage
   const storedTheme = localStorage.getItem('immich-swipe-theme')
@@ -14,13 +15,26 @@ export const useUiStore = defineStore('ui', () => {
     isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
 
+  const storedSkipVideos = localStorage.getItem('immich-swipe-skip-videos')
+  if (storedSkipVideos !== null) {
+    skipVideos.value = storedSkipVideos === 'true'
+  }
+
   // Watch and persist changes
   watch(isDarkMode, (newValue) => {
     localStorage.setItem('immich-swipe-theme', newValue ? 'dark' : 'light')
   })
 
+  watch(skipVideos, (newValue) => {
+    localStorage.setItem('immich-swipe-skip-videos', newValue ? 'true' : 'false')
+  })
+
   function toggleDarkMode() {
     isDarkMode.value = !isDarkMode.value
+  }
+
+  function toggleSkipVideos() {
+    skipVideos.value = !skipVideos.value
   }
 
   // Loading state
@@ -79,5 +93,7 @@ export const useUiStore = defineStore('ui', () => {
     incrementKept,
     incrementDeleted,
     resetStats,
+    skipVideos,
+    toggleSkipVideos,
   }
 })
