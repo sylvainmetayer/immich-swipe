@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { useImmich } from '@/composables/useImmich'
 import { useUiStore } from '@/stores/ui'
 import AppHeader from '@/components/AppHeader.vue'
 import SwipeCard from '@/components/SwipeCard.vue'
 import ActionButtons from '@/components/ActionButtons.vue'
 
-const { currentAsset, error, loadInitialAsset, keepPhoto, deletePhoto } = useImmich()
+const { currentAsset, lastDeletedAsset, error, loadInitialAsset, keepPhoto, deletePhoto, undoDelete } = useImmich()
 const uiStore = useUiStore()
+
+const canUndo = computed(() => lastDeletedAsset.value !== null)
 
 // Keyboard navigation
 function handleKeydown(e: KeyboardEvent) {
@@ -19,6 +21,9 @@ function handleKeydown(e: KeyboardEvent) {
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault()
     deletePhoto()
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault()
+    undoDelete()
   }
 }
 
@@ -91,16 +96,49 @@ onUnmounted(() => {
         <!-- Action buttons -->
         <ActionButtons
           v-if="currentAsset"
+          :can-undo="canUndo"
           @keep="keepPhoto"
           @delete="deletePhoto"
+          @undo="undoDelete"
         />
 
         <!-- Instructions -->
-        <p class="text-center text-sm py-2"
+        <div class="text-center text-sm py-2 flex items-center flex-col gap-y-2"
           :class="uiStore.isDarkMode ? 'text-gray-500' : 'text-gray-400'"
         >
-          Swipe right to keep • Swipe left to delete
-        </p>
+          <!-- Mobile -->
+          <div class="sm:hidden flex gap-x-2">
+            <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 text-green-600 bg-green-300">
+              RIGHT 
+              
+            </span>
+            <div
+              class="w-px h-6"
+              :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
+            ></div>
+            <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
+              LEFT
+            </span>
+          </div>
+          <!-- Desktop -->
+          <div class="hidden sm:flex gap-x-3">
+            <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
+              LEFT
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </span>
+            <div
+              class="w-px h-6"
+              :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
+            ></div>
+            <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 bg-green-300 text-green-600">
+              RIGHT 
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </span>
+          </div>
+          <p class="hidden sm:flex">
+            (←/→) • Ctrl+Z (undo)
+          </p>
+        </div>
       </div>
     </main>
   </div>

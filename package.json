@@ -23,7 +23,7 @@
     "vite": "^7.2.4",
     "vue-tsc": "^3.1.5"
   },
-  "description": "A mobile-optimized Vue 3 app for quickly reviewing your Immich photo library. Swipe right to keep photos, swipe left to delete them.",
+  "description": "Swipe right to keep photos, swipe left to delete them -> just like a dating app, but for immich! Powered by Vue 3 + TypeScript & Tailwind",
   "keywords": ["immich", "photo", "swipe", "vue"],
   "author": "",
   "license": "MIT"

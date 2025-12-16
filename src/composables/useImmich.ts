@@ -9,6 +9,7 @@ export function useImmich() {
 
   const currentAsset = ref<ImmichAsset | null>(null)
   const nextAsset = ref<ImmichAsset | null>(null)
+  const lastDeletedAsset = ref<ImmichAsset | null>(null)
   const error = ref<string | null>(null)
   const SKIP_VIDEOS_BATCH_SIZE = 10
   const SKIP_VIDEOS_MAX_ATTEMPTS = 5
@@ -190,6 +191,23 @@ export function useImmich() {
     }
   }
 
+  // Restore asset from trash
+  async function restoreAsset(assetId: string): Promise<boolean> {
+    try {
+      await apiRequest('/trash/restore/assets', {
+        method: 'POST',
+        body: JSON.stringify({
+          ids: [assetId],
+        }),
+      })
+      return true
+    } catch (e) {
+      console.error('Failed to restore asset:', e)
+      error.value = e instanceof Error ? e.message : 'Failed to restore photo'
+      return false
+    }
+  }
+
   // Keep
   async function keepPhoto(): Promise<void> {
     if (!currentAsset.value) return
@@ -202,10 +220,11 @@ export function useImmich() {
   async function deletePhoto(): Promise<void> {
     if (!currentAsset.value) return
 
-    const assetId = currentAsset.value.id
-    const success = await deleteAsset(assetId)
+    const assetToDelete = currentAsset.value
+    const success = await deleteAsset(assetToDelete.id)
 
     if (success) {
+      lastDeletedAsset.value = assetToDelete
       uiStore.incrementDeleted()
       uiStore.toast('Photo deleted', 'info', 1500)
       moveToNextAsset()
@@ -214,14 +233,41 @@ export function useImmich() {
     }
   }
 
+  // Undo last deletion
+  async function undoDelete(): Promise<void> {
+    if (!lastDeletedAsset.value) {
+      uiStore.toast('Nothing to undo', 'info', 1500)
+      return
+    }
+
+    const assetToRestore = lastDeletedAsset.value
+    const success = await restoreAsset(assetToRestore.id)
+
+    if (success) {
+      uiStore.decrementDeleted()
+      uiStore.toast(`${assetToRestore.originalFileName} was restored`, 'success', 2500)
+      lastDeletedAsset.value = null
+    } else {
+      uiStore.toast('Failed to restore photo', 'error')
+    }
+  }
+
+  // Check if undo is available
+  function canUndo(): boolean {
+    return lastDeletedAsset.value !== null
+  }
+
   return {
     currentAsset,
     nextAsset,
+    lastDeletedAsset,
     error,
     testConnection,
     loadInitialAsset,
     keepPhoto,
     deletePhoto,
+    undoDelete,
+    canUndo,
     getAssetThumbnailUrl,
     getAuthHeaders,
   }

@@ -48,8 +48,37 @@ immich-swipe/
 ├── nginx.conf            # Nginx config for production
 └── package.json
 ```
+## Immich API
+To reach Immich API you need to enable CORS (please refer to: [Immich - Reverse Proxy](https://docs.immich.app/administration/reverse-proxy/))
 
-## Required Immich API Permissions
+### Nginx Proxy Manager
+Add this to the settings of the proxy host pointing to your Immich instance:
+```
+add_header 'Access-Control-Allow-Origin' '*' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+add_header 'Access-Control-Allow-Headers' 'X-Api-Key, X-Target-Host, User-Agent, Content-Type, Authorization, Range, Accept' always;
+add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range, Accept-Ranges' always;
+if ($request_method = OPTIONS) { return 204; }
+```
+
+Also you might want to add this to the the respective .conf aswell (you can find it in your proxy manager folder: /n-p-m/data/nginx/proxy_host/<x-nr>.conf):
+```
+proxy_request_buffering off;
+proxy_buffering off;
+client_max_body_size 0;
+
+# CORS for ALL responses (including 404/401/50x)
+add_header 'Access-Control-Allow-Origin' '*' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+add_header 'Access-Control-Allow-Headers' 'X-Api-Key, X-Target-Host, User-Agent, Content-Type, Authorization, Range, Accept' always;
+add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range, Accept-Ranges' always;
+# Preflight
+if ($request_method = OPTIONS) {
+  return 204;
+}
+```
+
+### Required Immich API Permissions
 
 Create an API key in Immich (Account Settings → API Keys) with (at least):
 

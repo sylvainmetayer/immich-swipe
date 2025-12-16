@@ -73,6 +73,12 @@ export const useUiStore = defineStore('ui', () => {
     deletedCount.value++
   }
 
+  function decrementDeleted() {
+    if (deletedCount.value > 0) {
+      deletedCount.value--
+    }
+  }
+
   function resetStats() {
     keptCount.value = 0
     deletedCount.value = 0
@@ -92,6 +98,7 @@ export const useUiStore = defineStore('ui', () => {
     deletedCount,
     incrementKept,
     incrementDeleted,
+    decrementDeleted,
     resetStats,
     skipVideos,
     toggleSkipVideos,
