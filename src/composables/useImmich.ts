@@ -165,6 +165,13 @@ export function useImmich() {
     return `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}/assets/${assetId}/thumbnail?size=${size}`
   }
 
+  function getAssetOriginalUrl(assetId: string): string {
+    if (!authStore.immichBaseUrl) {
+      return ''
+    }
+    return `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}/assets/${assetId}/original`
+  }
+
   // Get headers for image requests
   function getAuthHeaders(): Record<string, string> {
     return {
@@ -269,6 +276,7 @@ export function useImmich() {
     undoDelete,
     canUndo,
     getAssetThumbnailUrl,
+    getAssetOriginalUrl,
     getAuthHeaders,
   }
 }

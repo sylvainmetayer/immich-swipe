@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useSwipe } from '@/composables/useSwipe'
 import { useUiStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
@@ -21,6 +21,11 @@ const cardRef = ref<HTMLElement | null>(null)
 const imageLoaded = ref(false)
 const imageError = ref(false)
 const imageBlobUrl = ref<string | null>(null)
+const videoBlobUrl = ref<string | null>(null)
+const videoError = ref(false)
+const videoLoading = ref(false)
+const videoRef = ref<HTMLVideoElement | null>(null)
+const videoAbortController = ref<AbortController | null>(null)
 
 // composable
 const { isSwiping, swipeOffset, swipeDirection } = useSwipe(cardRef, {
@@ -60,6 +65,8 @@ const deleteIndicatorOpacity = computed(() => {
   return 0
 })
 
+const isVideo = computed(() => props.asset.type === 'VIDEO')
+
 // Fetch image with auth headers
 async function fetchImage() {
   imageLoaded.value = false
@@ -96,10 +103,88 @@ async function fetchImage() {
   }
 }
 
+function cleanupVideo() {
+  if (videoAbortController.value) {
+    videoAbortController.value.abort()
+    videoAbortController.value = null
+  }
+  if (videoRef.value) {
+    videoRef.value.pause()
+    videoRef.value.currentTime = 0
+  }
+  if (videoBlobUrl.value) {
+    URL.revokeObjectURL(videoBlobUrl.value)
+    videoBlobUrl.value = null
+  }
+  videoError.value = false
+  videoLoading.value = false
+}
+
+async function fetchVideo() {
+  // Revoke old blob URL and cancel previous request
+  cleanupVideo()
+
+  videoLoading.value = true
+  videoError.value = false
+
+  if (!authStore.immichBaseUrl) {
+    videoError.value = true
+    videoLoading.value = false
+    return
+  }
+
+  const controller = new AbortController()
+  videoAbortController.value = controller
+
+  try {
+    const url = `${authStore.immichBaseUrl}${authStore.proxyBaseUrl}/assets/${props.asset.id}/original`
+    const response = await fetch(url, {
+      headers: {
+        'x-api-key': authStore.apiKey,
+        'X-Target-Host': authStore.immichBaseUrl,
+      },
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const blob = await response.blob()
+    videoBlobUrl.value = URL.createObjectURL(blob)
+  } catch (e) {
+    if (controller.signal.aborted) {
+      return
+    }
+    console.error('Failed to load video:', e)
+    videoError.value = true
+  } finally {
+    videoLoading.value = false
+    videoAbortController.value = null
+  }
+}
+
+function cleanupAllMedia() {
+  if (imageBlobUrl.value) {
+    URL.revokeObjectURL(imageBlobUrl.value)
+    imageBlobUrl.value = null
+  }
+  cleanupVideo()
+}
+
 // Watch asset changes
 watch(() => props.asset.id, () => {
-  fetchImage()
+  cleanupAllMedia()
+  if (isVideo.value) {
+    fetchVideo()
+  } else {
+    fetchImage()
+  }
 }, { immediate: true })
+
+onBeforeUnmount(() => {
+  cleanupAllMedia()
+})
 
 // obvious things are obvious
 const formattedDate = computed(() => {
@@ -122,7 +207,7 @@ const formattedDate = computed(() => {
     <div class="relative w-full h-full flex items-center justify-center overflow-hidden rounded-2xl">
       <!-- Loading placeholder -->
       <div
-        v-if="!imageLoaded && !imageError"
+        v-if="(isVideo && (videoLoading || (!videoBlobUrl && !videoError))) || (!isVideo && !imageLoaded && !imageError)"
         class="absolute inset-0 flex items-center justify-center"
         :class="uiStore.isDarkMode ? 'bg-gray-800' : 'bg-gray-200'"
       >
@@ -133,23 +218,35 @@ const formattedDate = computed(() => {
 
       <!-- Error state -->
       <div
-        v-if="imageError"
+        v-if="(isVideo && videoError) || (!isVideo && imageError)"
         class="absolute inset-0 flex flex-col items-center justify-center gap-2"
         :class="uiStore.isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-600'"
       >
         <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <p>Failed to load image</p>
+        <p>Failed to load media</p>
       </div>
 
       <!-- Actual image -->
       <img
-        v-if="imageBlobUrl"
+        v-if="!isVideo && imageBlobUrl"
         :src="imageBlobUrl"
         :alt="asset.originalFileName"
         class="max-w-full max-h-full object-contain"
         draggable="false"
+      />
+
+      <!-- Actual video -->
+      <video
+        v-else-if="isVideo && videoBlobUrl && !videoError"
+        ref="videoRef"
+        :src="videoBlobUrl"
+        class="max-w-full max-h-full object-contain"
+        playsinline
+        autoplay
+        loop
+        controls
       />
 
       <!-- KEEP (right swipe) -->
