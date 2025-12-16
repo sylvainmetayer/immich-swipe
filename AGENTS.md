@@ -1,0 +1,62 @@
+# Immich Swipe (Repo-Notizen für Agenten)
+
+## Kurzüberblick
+- Single-Page-App (Vue 3 + TypeScript + Tailwind) zum Durchsehen von Immich-Fotos: rechts = behalten, links = (in den Papierkorb) löschen.
+- Kein eigener Backend-Service: Browser spricht Immich API direkt an (oder über einen Reverse-Proxy, siehe unten).
+- State-Management über Pinia (`src/stores/*`), Routing über `vue-router` (`src/router/index.ts`).
+
+## Quickstart (lokal)
+- Voraussetzungen: Node.js (Docker nutzt `node:20-alpine`), npm.
+- Install: `npm install`
+- Dev-Server: `npm run dev` (Vite, Port `5173`, `host: true`)
+- Build: `npm run build`
+- Preview: `npm run preview`
+- Typecheck: `npm run type-check`
+
+## Konfiguration (.env / Login-Flow)
+- `.env` Variablen (siehe `env.example` / `README.md`):
+  - `VITE_SERVER_URL` (Basis-URL für die API; Details siehe „API/Proxy/CORS“)
+  - `VITE_USER_<N>_NAME`, `VITE_USER_<N>_API_KEY` (Parser läuft hochzählig ab 1 bis Name/Key fehlen)
+  - Hinweis: `src/vite-env.d.ts`, `Dockerfile` und `docker-compose.yml` sind aktuell bis `N=5` verdrahtet; für mehr User diese Stellen erweitern.
+- Verhalten:
+  - 1 User in `.env`: Auto-Login (keine Login-Seite)
+  - >1 User in `.env`: User-Auswahl (`/select-user`)
+  - keine `.env`: manuelles Login (`/login`), Config wird in `localStorage` gespeichert
+- Wichtige lokale Storage Keys:
+  - Auth: `immich-swipe-config` (Server-URL + API Key)
+  - UI: `immich-swipe-theme`, `immich-swipe-skip-videos`
+
+## API/Proxy/CORS (wichtigster Stolperstein)
+- Zentrale Request-Helfer:
+  - `src/composables/useImmich.ts` → `apiRequest()` baut URLs als:
+    - `url = authStore.immichBaseUrl + authStore.proxyBaseUrl + endpoint`
+    - `proxyBaseUrl` ist aktuell fest `'/api'` (`src/stores/auth.ts`)
+    - `immichBaseUrl` normalisiert `serverUrl` (entfernt ggf. `/api` am Ende)
+- Praktische Konsequenz:
+  - Wenn `VITE_SERVER_URL` auf die Immich-Instanz zeigt (z.B. `https://immich.example.com`), gehen Requests an `https://immich.example.com/api/...` → dafür muss Immich CORS erlauben (README enthält Snippets).
+  - Es gibt zusätzlich eine Nginx-Config (`nginx.conf`) mit Proxy-Location `/immich-api/` inkl. CORS-Headern. Damit das zur aktuellen Client-URL-Bildung passt, muss `VITE_SERVER_URL` i.d.R. auf `<app-origin>/immich-api` zeigen, damit der Client `/immich-api/api/...` aufruft.
+- Security-Hinweis (Proxy): `nginx.conf` erlaubt per `X-Target-Host` ein dynamisches `proxy_pass`-Ziel. Das ist funktional, kann aber als „Open Proxy/SSRF“ missbraucht werden, wenn der Reverse-Proxy öffentlich erreichbar ist.
+
+## Docker/Deployment
+- `docker-compose.yml` baut das Image und veröffentlicht Port `2293:80`.
+- Die `.env` Werte werden als **Build-Args** in den Build gebacken (siehe `Dockerfile` + `docker-compose.yml`).
+  - Änderung der `.env` in Production erfordert Rebuild/Recreate des Containers.
+- Runtime-Server ist Nginx (`nginx:alpine`) und serviert `dist/` + `nginx.conf`.
+
+## Code-Map (wichtigste Stellen)
+- Routing/Auth:
+  - `src/router/index.ts` (Guard: Redirects je nach Login/.env-Konfig)
+  - `src/stores/auth.ts` (env-Parsing, `localStorage`, URL-Normalisierung)
+- Immich-Integration:
+  - `src/composables/useImmich.ts` (Random Asset, Delete/Restore, Preload)
+  - `src/types/immich.ts` (API-Typen)
+- UI/Interaktion:
+  - `src/views/HomeView.vue` (Hauptscreen, Keyboard-Support, bindet Swipe/Buttons)
+  - `src/components/SwipeCard.vue` (lädt Thumbnail als Blob mit Headern)
+  - `src/composables/useSwipe.ts` (Touch+Mouse Swipe-Erkennung)
+  - `src/stores/ui.ts` + `src/components/LoadingOverlay.vue` + `src/components/ToastNotification.vue`
+
+## Konventionen für Änderungen
+- TypeScript ist `strict` + `noUnusedLocals/noUnusedParameters` aktiv (`tsconfig.json`): saubere Imports/Variablen, sonst Build bricht.
+- Beim Hinzufügen neuer `VITE_*` Variablen: `src/vite-env.d.ts`, `env.example` und ggf. `README.md` synchron halten.
+- Neue Immich-Calls bevorzugt in `src/composables/useImmich.ts` ergänzen und intern `apiRequest()` nutzen (Fehlerhandling/Headers konsistent halten).
