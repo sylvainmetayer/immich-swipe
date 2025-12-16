@@ -21,6 +21,9 @@ function handleKeydown(e: KeyboardEvent) {
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault()
     deletePhoto()
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    undoDelete()
   } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
     e.preventDefault()
     undoDelete()
@@ -38,13 +41,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col"
+  <div class="viewport-fit flex flex-col"
     :class="uiStore.isDarkMode ? 'bg-black text-white' : 'bg-white text-black'"
   >
     <AppHeader />
 
     <!-- Main content -->
-    <main class="flex-1 flex flex-col px-4 pb-4">
+    <main class="flex-1 flex flex-col px-4 safe-area-bottom min-h-0 gap-3 overflow-hidden">
       <!-- Error state -->
       <div v-if="error && !currentAsset" class="flex-1 flex flex-col items-center justify-center gap-4">
         <div class="text-center">
@@ -72,10 +75,10 @@ onUnmounted(() => {
       </div>
 
       <!-- Swipe area -->
-      <div v-else class="flex-1 flex flex-col">
+      <div v-else class="flex-1 flex flex-col min-h-0 gap-3">
         <!-- Card container -->
-        <div class="flex-1 flex items-center justify-center p-2">
-          <div v-if="currentAsset" class="w-full h-full max-w-lg max-h-[70vh]">
+        <div class="flex-1 min-h-0 flex items-center justify-center p-2">
+          <div v-if="currentAsset" class="w-full h-full max-w-4xl max-h-full">
             <SwipeCard
               :asset="currentAsset"
               @keep="keepPhoto"
@@ -84,7 +87,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Empty state while loading -->
-          <div v-else class="flex items-center justify-center"
+          <div v-else class="flex h-full items-center justify-center"
             :class="uiStore.isDarkMode ? 'text-gray-600' : 'text-gray-400'"
           >
             <svg class="w-16 h-16 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,51 +96,53 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Action buttons -->
-        <ActionButtons
-          v-if="currentAsset"
-          :can-undo="canUndo"
-          @keep="keepPhoto"
-          @delete="deletePhoto"
-          @undo="undoDelete"
-        />
+        <div class="shrink-0 flex flex-col items-center gap-2">
+          <!-- Action buttons -->
+          <ActionButtons
+            v-if="currentAsset"
+            :can-undo="canUndo"
+            @keep="keepPhoto"
+            @delete="deletePhoto"
+            @undo="undoDelete"
+          />
 
-        <!-- Instructions -->
-        <div class="text-center text-sm py-2 flex items-center flex-col gap-y-2"
-          :class="uiStore.isDarkMode ? 'text-gray-500' : 'text-gray-400'"
-        >
-          <!-- Mobile -->
-          <div class="sm:hidden flex gap-x-2">
-            <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 text-green-600 bg-green-300">
-              RIGHT 
-              
-            </span>
-            <div
-              class="w-px h-6"
-              :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
-            ></div>
-            <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
-              LEFT
-            </span>
+          <!-- Instructions -->
+          <div class="text-center text-sm py-2 flex items-center flex-col gap-y-2"
+            :class="uiStore.isDarkMode ? 'text-gray-500' : 'text-gray-400'"
+          >
+            <!-- Mobile -->
+            <div class="sm:hidden flex gap-x-2">
+              <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 text-green-600 bg-green-300">
+                RIGHT 
+                
+              </span>
+              <div
+                class="w-px h-6"
+                :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
+              ></div>
+              <span class="px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
+                LEFT
+              </span>
+            </div>
+            <!-- Desktop -->
+            <div class="hidden sm:flex gap-x-3">
+              <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
+                LEFT
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </span>
+              <div
+                class="w-px h-6"
+                :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
+              ></div>
+              <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 bg-green-300 text-green-600">
+                RIGHT 
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              </span>
+            </div>
+            <p class="hidden sm:flex">
+              (←/→) • Ctrl+Z or ↑ (undo)
+            </p>
           </div>
-          <!-- Desktop -->
-          <div class="hidden sm:flex gap-x-3">
-            <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-red-700 text-red-600 bg-red-300">
-              LEFT
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </span>
-            <div
-              class="w-px h-6"
-              :class="uiStore.isDarkMode ? 'bg-gray-700' : 'bg-gray-300'"
-            ></div>
-            <span class="flex gap-x-2 px-3 py-1 rounded-full text-xs font-medium border transition-colors border-green-700 bg-green-300 text-green-600">
-              RIGHT 
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            </span>
-          </div>
-          <p class="hidden sm:flex">
-            (←/→) • Ctrl+Z (undo)
-          </p>
         </div>
       </div>
     </main>

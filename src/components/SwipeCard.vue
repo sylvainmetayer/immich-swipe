@@ -233,7 +233,7 @@ const formattedDate = computed(() => {
         v-if="!isVideo && imageBlobUrl"
         :src="imageBlobUrl"
         :alt="asset.originalFileName"
-        class="max-w-full max-h-full object-contain"
+        class="w-full h-full object-contain"
         draggable="false"
       />
 
@@ -242,7 +242,7 @@ const formattedDate = computed(() => {
         v-else-if="isVideo && videoBlobUrl && !videoError"
         ref="videoRef"
         :src="videoBlobUrl"
-        class="max-w-full max-h-full object-contain"
+        class="w-full h-full object-contain"
         playsinline
         autoplay
         loop
