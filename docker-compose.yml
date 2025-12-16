@@ -7,6 +7,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Pass environment variables at build time
+        - VITE_SERVER_URL=${VITE_SERVER_URL:-}
+        - VITE_USER_1_NAME=${VITE_USER_1_NAME:-}
+        - VITE_USER_1_API_KEY=${VITE_USER_1_API_KEY:-}
+        - VITE_USER_2_NAME=${VITE_USER_2_NAME:-}
+        - VITE_USER_2_API_KEY=${VITE_USER_2_API_KEY:-}
+        - VITE_USER_3_NAME=${VITE_USER_3_NAME:-}
+        - VITE_USER_3_API_KEY=${VITE_USER_3_API_KEY:-}
+        - VITE_USER_4_NAME=${VITE_USER_4_NAME:-}
+        - VITE_USER_4_API_KEY=${VITE_USER_4_API_KEY:-}
+        - VITE_USER_5_NAME=${VITE_USER_5_NAME:-}
+        - VITE_USER_5_API_KEY=${VITE_USER_5_API_KEY:-}
     container_name: immich-swipe
     restart: unless-stopped
     ports:

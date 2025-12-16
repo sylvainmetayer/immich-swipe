@@ -19,6 +19,38 @@ Made with:
 - ⚡ **Preloading** — Next photo is preloaded for instant transitions
 - 🔒 **No Backend Required** — Connects directly to Immich via API
 
+## Configuration
+
+### Option 1: Environment Variables (Recommended for Docker)
+
+Create a `.env` file with your Immich configuration:
+
+```bash
+# Your Immich server URL
+VITE_SERVER_URL=http://immich.home
+
+# User 1
+VITE_USER_1_NAME=User 1
+VITE_USER_1_API_KEY=your-api-key-here
+
+# User 2 (optional)
+VITE_USER_2_NAME=User 2
+VITE_USER_2_API_KEY=another-api-key-here
+
+# Add more users as needed (VITE_USER_3_NAME, VITE_USER_3_API_KEY, etc.)
+```
+
+**Behavior:**
+- **Single user configured:** Auto-login, no login screen shown
+- **Multiple users configured:** User selection screen shown at startup
+- **No env config:** Traditional login form shown
+
+### Option 2: Manual Login
+
+If no environment variables are set, users can manually enter:
+- Immich Server URL
+- API Key
+
 ## Local Development
 
 ```bash

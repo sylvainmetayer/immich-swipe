@@ -43,3 +43,13 @@ export interface DeleteAssetsRequest {
 export interface DeleteAssetsResponse {
   count: number
 }
+
+export interface EnvUser {
+  name: string
+  apiKey: string
+}
+
+export interface EnvConfig {
+  serverUrl: string
+  users: EnvUser[]
+}

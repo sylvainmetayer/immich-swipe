@@ -15,6 +15,11 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
     },
+    {
+      path: '/select-user',
+      name: 'select-user',
+      component: () => import('@/views/UserSelectView.vue'),
+    },
   ],
 })
 
@@ -22,13 +27,71 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    next('/login')
-  } else if (to.path === '/login' && authStore.isLoggedIn) {
-    next('/')
-  } else {
-    next()
+  // Logged in -> home
+  if (authStore.isLoggedIn) {
+    if (to.path === '/login' || to.path === '/select-user') {
+      next('/')
+    } else {
+      next()
+    }
+    return
   }
+
+  // Not logged in -> routing based on .env
+  
+  // Accessing login page
+  if (to.path === '/login') {
+    // .env -> redirect
+    if (authStore.hasEnvConfig) {
+      if (authStore.hasSingleEnvUser) {
+        authStore.autoLoginSingleUser()
+        next('/')
+      } else {
+        // multi user -> select
+        next('/select-user')
+      }
+    } else {
+      // No .env -> login page
+      next()
+    }
+    return
+  }
+
+  // Accessing selection
+  if (to.path === '/select-user') {
+    if (!authStore.hasEnvConfig) {
+      // No .env -> login page
+      next('/login')
+    } else if (authStore.hasSingleEnvUser) {
+      // Single user -> auto login
+      authStore.autoLoginSingleUser()
+      next('/')
+    } else {
+      // multi user -> allow selection
+      next()
+    }
+    return
+  }
+
+  // Protected routes
+  if (to.meta.requiresAuth) {
+    if (authStore.hasEnvConfig) {
+      if (authStore.hasSingleEnvUser) {
+        authStore.autoLoginSingleUser()
+        next()
+      } else {
+        // multi user -> selection
+        next('/select-user')
+      }
+    } else {
+      // No .env -> login page
+      next('/login')
+    }
+    return
+  }
+
+  // Default -> allow
+  next()
 })
 
 export default router
