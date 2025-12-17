@@ -274,8 +274,12 @@ const formattedDate = computed(() => {
     <div
       class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl"
     >
-      <p class="text-white text-sm truncate">{{ asset.originalFileName }}</p>
-      <p class="text-white/70 text-xs">{{ formattedDate }}</p>
+      <div class="flex items-center gap-3 justify-between">
+        <div class="min-w-0">
+          <p class="text-white text-sm truncate">{{ asset.originalFileName }}</p>
+          <p class="text-white/70 text-xs">{{ formattedDate }}</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
