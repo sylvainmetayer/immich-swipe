@@ -1,91 +1,116 @@
 # Immich Swipe
 
-Swipe right to keep photos, swipe left to delete them -> just like a dating app, but for immich!
+Swipe-review your Immich library: right = keep, left = trash. Like a dating app, but for photos (and videos).
 
-Made with:
 ![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D?logo=vue.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4?logo=tailwindcss)
 
+<p align="center">
+  <img src="docs/screenshots/home.png" width="960" alt="Immich Swipe home screen (sanitized demo)" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" width="260" alt="Immich Swipe mobile view (sanitized demo)" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/album-picker.png" width="960" alt="Album picker + hotkey mapping (sanitized demo)" />
+</p>
+
+> Screenshots are sanitized (no real photos or API keys).
+
 ## Features
 
-- 🖼️ **Random Photo Review** — Shows random photos from your Immich library one at a time
-- 👆 **Swipe Gestures** — Swipe right to keep, swipe left to delete (works on mobile and desktop)
-- 🔘 **Button Controls** — Prefer buttons? Use the keep/delete buttons instead
-- ⌨️ **Keyboard Support** — Use arrow keys (←/→) on desktop
-- 🌙 **Dark/Light Mode** — Toggle between dark and light themes
-- 📊 **Session Stats** — Track how many photos you've kept vs deleted
-- 🎞️ **Skip Videos Mode** — Enable an optional filter that automatically skips video assets
-- ⚡ **Preloading** — Next photo is preloaded for instant transitions
-- 🔒 **No Backend Required** — Connects directly to Immich via API
+- Swipe (touch/mouse) or use keyboard/buttons
+- Random or chronological review (oldest/newest first)
+- Skip videos toggle
+- Favorite toggle (press `F`)
+- Add-to-album (+ configurable `0–9` hotkeys)
+- Undo (Ctrl/⌘+Z or ↑)
+- Reviewed cache + stats persisted per server/user
+- Preloads the next asset
+
+## Controls
+
+| Action | Gesture / Key | Button |
+|---|---|---|
+| Keep | Swipe right / `→` | ✓ |
+| Delete (moves to trash) | Swipe left / `←` | ✕ |
+| Undo | `Ctrl/⌘+Z` or `↑` | ↶ |
+| Favorite | `F` | ♡ |
+| Add to album | `0–9` (configured) | Album icon |
+
+## Quickstart
+
+### Local development
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+### Docker
+
+```bash
+cp env.example .env
+# edit .env
+docker compose up --build
+```
+
+Open `http://localhost:2293`.
+
+Note: `.env` values are passed as build args and end up in the frontend bundle. Changing `.env` requires a rebuild.
+
+<details>
+  <summary>Login screen</summary>
+  <p align="center">
+    <img src="docs/screenshots/login.png" width="320" alt="Login screen" />
+  </p>
+</details>
 
 ## Configuration
 
-### Option 1: Environment Variables (Recommended for Docker)
+### Option A: `.env` users (build-time)
 
-Create a `.env` file with your Immich configuration:
+See `env.example`.
 
 ```bash
-# Your Immich server URL
-VITE_SERVER_URL=http://immich.home
-
-# User 1
+VITE_SERVER_URL=https://immich.example.com
 VITE_USER_1_NAME=User 1
-VITE_USER_1_API_KEY=your-api-key-here
-
-# User 2 (optional)
-VITE_USER_2_NAME=User 2
-VITE_USER_2_API_KEY=another-api-key-here
-
-# Add more users as needed (VITE_USER_3_NAME, VITE_USER_3_API_KEY, etc.)
+VITE_USER_1_API_KEY=your-api-key
 ```
 
-**Behavior:**
-- **Single user configured:** Auto-login, no login screen shown
-- **Multiple users configured:** User selection screen shown at startup
-- **No env config:** Traditional login form shown
+Tip: `VITE_SERVER_URL` can be the base URL (recommended) or end with `/api` — the app normalizes it.
 
-### Option 2: Manual Login
+Behavior:
+- 1 user configured: auto-login
+- >1 users configured: user selection screen (`/select-user`)
+- no `.env` users: manual login (`/login`), stored in `localStorage`
 
-If no environment variables are set, users can manually enter:
+Note: user slots are currently wired up to `VITE_USER_5_*` in `src/vite-env.d.ts`, `Dockerfile`, and `docker-compose.yml`.
+
+Security note: `VITE_*` variables are embedded into the compiled frontend. Only use `VITE_USER_*_API_KEY` for private deployments/images.
+
+### Option B: manual login (runtime)
+
+If you don’t configure `.env` users, the app asks for:
 - Immich Server URL
-- API Key
+- API key
 
-## Local Development
+Those values are stored in `localStorage` under `immich-swipe-config`.
 
-```bash
-# Install dependencies
-npm install
+## API / CORS / Proxy
 
-# Start dev server
-npm run dev
+All requests use Immich’s API (`/api/...`) with the `x-api-key` header, so your Immich instance (or reverse proxy in front of it) needs to allow CORS.
 
-# Build for production
-npm run build
-```
+If `VITE_SERVER_URL` points directly to your Immich instance (for example `https://immich.example.com`), your browser calls `https://immich.example.com/api/...`.
 
-## Project Structure
+You’ll need CORS headers. For Nginx Proxy Manager, add:
 
-```
-immich-swipe/
-├── src/
-│   ├── components/       # Vue components
-│   ├── composables/      # Vue composables (useImmich, useSwipe)
-│   ├── router/           # Vue Router
-│   ├── stores/           # Pinia stores (auth, ui)
-│   ├── types/            # TypeScript types
-│   └── views/            # Page components
-├── docker-compose.yml    # Docker Compose config
-├── Dockerfile            # Multi-stage build
-├── nginx.conf            # Nginx config for production
-└── package.json
-```
-## Immich API
-To reach Immich API you need to enable CORS (please refer to: [Immich - Reverse Proxy](https://docs.immich.app/administration/reverse-proxy/))
-
-### Nginx Proxy Manager
-Add this to the settings of the proxy host pointing to your Immich instance:
-```
+```nginx
 add_header 'Access-Control-Allow-Origin' '*' always;
 add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
 add_header 'Access-Control-Allow-Headers' 'X-Api-Key, X-Target-Host, User-Agent, Content-Type, Authorization, Range, Accept' always;
@@ -93,30 +118,29 @@ add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range, Accep
 if ($request_method = OPTIONS) { return 204; }
 ```
 
-Also you might want to add this to the the respective .conf aswell (you can find it in your proxy manager folder: /n-p-m/data/nginx/proxy_host/<x-nr>.conf):
-```
-proxy_request_buffering off;
-proxy_buffering off;
-client_max_body_size 0;
+See also: https://docs.immich.app/administration/reverse-proxy/
 
-# CORS for ALL responses (including 404/401/50x)
-add_header 'Access-Control-Allow-Origin' '*' always;
-add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
-add_header 'Access-Control-Allow-Headers' 'X-Api-Key, X-Target-Host, User-Agent, Content-Type, Authorization, Range, Accept' always;
-add_header 'Access-Control-Expose-Headers' 'Content-Length, Content-Range, Accept-Ranges' always;
-# Preflight
-if ($request_method = OPTIONS) {
-  return 204;
-}
-```
+## Stored data (localStorage)
 
-### Required Immich API Permissions
+- `immich-swipe-config` (manual login: server URL + API key)
+- `immich-swipe-theme`
+- `immich-swipe-skip-videos`
+- `immich-swipe-stats:<server>:<user>` (keep/delete counters)
+- `immich-swipe-reviewed:<server>:<user>` (already reviewed IDs + decision)
+- `immich-swipe-preferences:<server>:<user>` (order mode + album hotkeys)
 
-Create an API key in Immich (Account Settings → API Keys) with (at least):
+## Immich API key permissions
 
-- `asset.read` — View photos
-- `asset.delete` — Delete photos (moves to trash)
+Minimum:
+- `asset.read`
+- `asset.delete`
 
-## License
+If you want albums and favorites, grant the corresponding read/update permissions as well.
 
-MIT
+## Development scripts
+
+- `npm run dev` (Vite, `5173`, `--host`)
+- `npm run build`
+- `npm run preview`
+- `npm run type-check`
+- `npm test`
