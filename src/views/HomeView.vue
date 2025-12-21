@@ -196,8 +196,8 @@ onUnmounted(() => {
             @album-drop="openAlbumPicker"
           />
 
-          <!-- Instructions -->
-          <div class="text-center text-sm py-2 flex items-center flex-col gap-y-2"
+          <!-- Instructions (now mobile -> hidden) -->
+          <div class="hidden sm:flex text-center text-sm py-2 items-center flex-col gap-y-2"
             :class="uiStore.isDarkMode ? 'text-gray-500' : 'text-gray-400'"
           >
             <!-- Mobile -->
